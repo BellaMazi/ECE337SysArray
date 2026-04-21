@@ -69,9 +69,7 @@ module dataBuffer #(
     logic occ_err_ff, next_occ_err, overrun_err_ff, next_overrun_err;
     logic [1:0] last_rd_region, next_last_rd_region;
 
-    logic [9:0] hold_addr, next_hold_addr;
-    logic hold_re, next_hold_re, hold_we, next_hold_we;
-    logic [63:0] hold_wdata, next_hold_wdata;
+    
     logic [9:0] ahb_mapped_addr;
 
     assign sram_state_out = sram_state;
@@ -104,10 +102,6 @@ module dataBuffer #(
         next_occ_err = occ_err_ff;
         next_overrun_err = overrun_err;
         next_last_rd_region = last_rd_region;
-        next_hold_addr = hold_addr;
-        next_hold_re = hold_re;
-        next_hold_we = hold_we;
-        next_hold_wdata = hold_wdata;
         ahb_mapped_addr = 10'd0;
 
         //AHB address decode
@@ -123,26 +117,26 @@ module dataBuffer #(
 
         //arbitration
         if(sram_rd_en || sram_wr_en) begin
-            if(sram_state == SRAM_BUSY) begin
-                sram_address = hold_addr;
-                sram_re = hold_re;
-                sram_we = hold_we;
-                sram_wdata = hold_wdata;
-            end
-            else begin
-                sram_address = sram_addr;
-                sram_re = sram_rd_en;
-                sram_we = sram_wr_en;
-                sram_wdata = sram_wr_data;
-            end
+            // if(sram_state == SRAM_BUSY) begin
+            //     sram_address = hold_addr;
+            //     sram_re = hold_re;
+            //     sram_we = hold_we;
+            //     sram_wdata = hold_wdata;
+            // end
+            // else begin
+            sram_address = sram_addr;
+            sram_re = sram_rd_en;
+            sram_we = sram_wr_en;
+            sram_wdata = sram_wr_data;
+            // end
         end
         else if (ahb_req) begin
             if(sram_state == SRAM_BUSY) begin
                 hready_stall = 1'b1;
-                sram_address = hold_addr;
-                sram_re = hold_re;
-                sram_we = hold_we;
-                sram_wdata = hold_wdata;
+                // sram_address = hold_addr;
+                // sram_re = hold_re;
+                // sram_we = hold_we;
+                // sram_wdata = hold_wdata;
             end
             else begin
                 sram_address = ahb_mapped_addr;
@@ -186,7 +180,7 @@ module dataBuffer #(
         end
 
         if(ahb_req && hwrite && (haddr == INPUT_REG) && (sram_state == SRAM_ACCESS)) begin
-            if(in_wr_ptr == 4'd8) begin
+            if(in_wr_ptr >= 4'd7) begin
                 next_occ_err = 1'b1;
             end
             else begin
@@ -220,14 +214,7 @@ module dataBuffer #(
             next_out_rd_ptr = 3'd0; //inference done
         if(ctrl_reg_0)
             next_in_wr_ptr = 4'd0; //new inference starting
- 
-        if(sram_state == SRAM_FREE) begin
-            next_hold_addr = sram_address;
-            next_hold_re = sram_re;
-            next_hold_we = sram_we;
-            next_hold_wdata = sram_wdata;
-        end
-        
+
     end
 
     always_ff @(posedge clk, negedge n_rst) begin
@@ -239,10 +226,6 @@ module dataBuffer #(
             occ_err_ff <= 1'b0;
             overrun_err_ff <= 1'b0;
             last_rd_region <= RGN_NON;
-            hold_addr <= 10'd0;
-            hold_re <= 1'b0;
-            hold_we <= 1'b0;
-            hold_wdata <= 64'd0;
         end
         else begin
             wt_wr_ptr <= next_wt_wr_ptr;
@@ -252,10 +235,6 @@ module dataBuffer #(
             occ_err_ff <= next_occ_err;
             overrun_err_ff <= next_overrun_err;
             last_rd_region <= next_last_rd_region;
-            hold_addr <= next_hold_addr;
-            hold_re <= next_hold_re;
-            hold_we <= next_hold_we;
-            hold_wdata <= next_hold_wdata;
         end
     end
 

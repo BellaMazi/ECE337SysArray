@@ -359,6 +359,20 @@ module tb_dataBuffer ();
 
         end
 
+        n_rst = 1;
+        sram_rd_en = 0;
+        sram_wr_en = 0;
+        sram_addr = 0;
+        sram_wr_data = 0;
+        ctrl_reg_clear = 0;
+        ctrl_reg_0 = 0;
+        haddr = 0;
+        hwdata = 0;
+        hwrite = 0;
+        ahb_req = 0;
+
+        reset_dut();
+
         $display("TEST 10: SRAM BUSY stall");
         test_name = "SRAM wrarbites - SRAM BUSY stall";
 
@@ -415,6 +429,9 @@ module tb_dataBuffer ();
 
             
         end
+
+        def_in();
+        reset_dut();
 
         $display("TEST 12: Read-data mux: correct bank is selected");
         test_name = "Read-data mux: correct bank is selected";
