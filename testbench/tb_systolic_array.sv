@@ -6,7 +6,6 @@ module tb_systolic_array ();
     localparam CLK_PERIOD = 10; // 100 MHz clock
 
     logic clk, n_rst, load_weights, run_array;
-    logic [15:0] input_count; // NEW: The programmable pipeline length
     logic [63:0] input_vec;
     logic data_out_valid;
     logic [63:0] outputs;
@@ -18,7 +17,6 @@ module tb_systolic_array ();
         .n_rst(n_rst), 
         .load_weights(load_weights), 
         .run_array(run_array),
-        .input_count(input_count), // NEW: Wired to DUT
         .input_vec(input_vec), 
         .data_out_valid(data_out_valid), 
         .outputs(outputs)
@@ -40,7 +38,6 @@ module tb_systolic_array ();
         load_weights = 0;
         run_array = 0;
         input_vec = '0;
-        input_count = 16'd8; // Default to an 8x8 matrix so standard tests pass seamlessly
         @(negedge clk);
         @(negedge clk);
         n_rst = 1;
@@ -50,10 +47,10 @@ module tb_systolic_array ();
 
     task flush_pipeline;
     begin
-        // Bumped from 24 to 32 cycles to ensure the 16-input test has enough time to drain!
+        // Reverted back to 24 cycles since max stream is 8 rows
         run_array = 1'b1;
         input_vec = 64'h0000_0000_0000_0000;
-        repeat(32) @(negedge clk); 
+        repeat(24) @(negedge clk); 
         run_array = 1'b0;
         @(negedge clk);
     end
@@ -89,14 +86,18 @@ module tb_systolic_array ();
         repeat(8) @(negedge clk); 
         flush_pipeline();
 
-        // TEST 3: 16 Inputs in a Row
-        testName = "Back to back inputs";
-        input_count = 16'd16; 
+        // TEST 3: Consecutive Inference Sequences
+        testName = "Consecutive Inferences";
+        // Inference 1
         run_array = 1'b1;
         input_vec = 64'h3838_3838_3838_3838; 
-        repeat(16) @(negedge clk);
+        repeat(8) @(negedge clk);
         flush_pipeline();
-        input_count = 16'd8; 
+        // Inference 2 (Proves counter reset properly)
+        run_array = 1'b1;
+        input_vec = 64'h3838_3838_3838_3838; 
+        repeat(8) @(negedge clk);
+        flush_pipeline();
 
         // TEST 4: Stall Test
         testName = "Stop mid calculation";
@@ -162,4 +163,3 @@ module tb_systolic_array ();
 endmodule
 
 /* verilator coverage_on */
-

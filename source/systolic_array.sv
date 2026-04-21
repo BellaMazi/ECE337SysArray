@@ -4,7 +4,6 @@ module systolic_array (
     input logic clk, n_rst, 
     input logic load_weights, 
     input logic run_array,
-    input logic [15:0] input_count,
     input logic [63:0] input_vec,
     output logic data_out_valid,
     output logic [63:0] outputs
@@ -26,7 +25,8 @@ module systolic_array (
     logic [7:0] full_sum [7:0][7:0];
     logic [63:0] outputs_reg, outputs_next;
     logic data_out_valid_reg, data_out_valid_next;
-    logic [15:0] latency_counter;
+    logic [5:0] latency_counter; // Reverted back to 6-bit
+    
     assign outputs = outputs_reg;
     assign data_out_valid = data_out_valid_reg;
 
@@ -43,6 +43,7 @@ module systolic_array (
             foreach(w17_regs[i]) w17_regs[i] <= '0;
             foreach(w18_regs[i]) w18_regs[i] <= '0;
             foreach(y_align[i,j]) y_align[i][j] <= '0;
+            
             latency_counter <= '0;
             outputs_reg <= '0;
             data_out_valid_reg <= '0;
@@ -70,12 +71,13 @@ module systolic_array (
                 w_reg[0][7] <= input_vec[63:56];
             end
             else if (!run_array) begin
-                if (latency_counter > (16'd14 + input_count)) begin
+                // Hardcoded 8x8 Smart Reset
+                if (latency_counter > 6'd22) begin
                     latency_counter <= '0;
                 end
             end
             else if(run_array) begin
-                if (latency_counter < 16'hFFFF) begin
+                if (latency_counter < 6'd63) begin
                     latency_counter <= latency_counter + 1;
                 end
 
@@ -107,12 +109,14 @@ module systolic_array (
                 w18_regs[4] <= w18_regs[3];
                 w18_regs[5] <= w18_regs[4];
                 w18_regs[6] <= w18_regs[5];
+                
                 for(int r = 0; r < 8; r = r + 1) begin
                     for(int c = 0; c < 8; c = c + 1) begin
                         x_reg[r][c] <= x_in[r][c];
                         y_reg[r][c] <= full_sum[r][c];
                     end
                 end
+                
                 for(int j = 0; j < 7; j = j + 1) begin
                     y_align[j][0] <= y_reg[7][j];
                     for(int k = 1; k < 7 - j; k = k + 1) begin
@@ -158,7 +162,7 @@ module systolic_array (
             for(int j = 0; j < 8; j = j + 1) begin
                 outputs_next[(j*8)+7 -: 8] = (j == 7) ? y_reg[7][7] : y_align[j][6-j];
             end
-            if(latency_counter >= 16'd15 && latency_counter <= (16'd14 + input_count)) begin
+            if(latency_counter >= 6'd15 && latency_counter <= 6'd22) begin
                 data_out_valid_next = 1'b1;
             end
         end
