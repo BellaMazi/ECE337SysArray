@@ -1,0 +1,122 @@
+Information: Updating design information... (UID-85)
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 1
+Design : ahb_subordinate_cdl
+Version: W-2024.09-SP4
+Date   : Sat Apr 18 16:19:02 2026
+****************************************
+
+Operating Conditions: typical   Library: osu05_stdcells
+Wire Load Model Mode: top
+
+  Startpoint: reg_bias_reg[34]
+              (rising edge-triggered flip-flop)
+  Endpoint: bias[34] (output port)
+  Path Group: (none)
+  Path Type: max
+
+  Point                                    Incr       Path
+  -----------------------------------------------------------
+  reg_bias_reg[34]/CLK (DFFSR)             0.00       0.00 r
+  reg_bias_reg[34]/Q (DFFSR)               0.56       0.56 f
+  bias[34] (out)                           0.00       0.56 f
+  data arrival time                                   0.56
+  -----------------------------------------------------------
+  (Path is unconstrained)
+
+
+1
+ 
+****************************************
+Report : area
+Design : ahb_subordinate_cdl
+Version: W-2024.09-SP4
+Date   : Sat Apr 18 16:19:02 2026
+****************************************
+
+Library(s) Used:
+
+    osu05_stdcells (File: /home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db)
+
+Number of ports:                          234
+Number of nets:                           845
+Number of cells:                          757
+Number of combinational cells:            451
+Number of sequential cells:               153
+Number of macros/black boxes:               0
+Number of buf/inv:                        167
+Number of references:                      18
+
+Combinational area:             119475.000000
+Buf/Inv area:                    24840.000000
+Noncombinational area:          242352.000000
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:                361827.000000
+Total area:                 undefined
+1
+Loading db file '/home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db'
+Information: Propagating switching activity (low effort zero delay simulation). (PWR-6)
+Warning: There is no defined clock in the design. (PWR-80)
+Warning: Design has unannotated primary inputs. (PWR-414)
+Warning: Design has unannotated sequential cell outputs. (PWR-415)
+ 
+****************************************
+Report : power
+        -analysis_effort low
+Design : ahb_subordinate_cdl
+Version: W-2024.09-SP4
+Date   : Sat Apr 18 16:19:02 2026
+****************************************
+
+
+Library(s) Used:
+
+    osu05_stdcells (File: /home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db)
+
+
+Operating Conditions: typical   Library: osu05_stdcells
+Wire Load Model Mode: top
+
+
+Global Operating Voltage = 5    
+Power-specific unit information :
+    Voltage Units = 1V
+    Capacitance Units = 1.000000pf
+    Time Units = 1ns
+    Dynamic Power Units = 1mW    (derived from V,C,T units)
+    Leakage Power Units = 1nW
+
+
+Attributes
+----------
+i - Including register clock pin internal power
+
+
+  Cell Internal Power  =  21.7361 mW   (86%)
+  Net Switching Power  =   3.5970 mW   (14%)
+                         ---------
+Total Dynamic Power    =  25.3332 mW  (100%)
+
+Cell Leakage Power     = 114.1453 nW
+
+Information: report_power power group summary does not include estimated clock tree power. (PWR-789)
+
+                 Internal         Switching           Leakage            Total
+Power Group      Power            Power               Power              Power   (   %    )  Attrs
+--------------------------------------------------------------------------------------------------
+io_pad             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+memory             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+black_box          0.0000            0.0000            0.0000            0.0000  (   0.00%)
+clock_network      0.0000            0.0000            0.0000            0.0000  (   0.00%)  i
+register           0.0000            0.0000            0.0000            0.0000  (   0.00%)
+sequential        17.9712            0.1234           81.5456           18.0946  (  71.43%)
+combinational      3.7650            3.4737           32.5997            7.2387  (  28.57%)
+--------------------------------------------------------------------------------------------------
+Total             21.7362 mW         3.5970 mW       114.1453 nW        25.3333 mW
+1

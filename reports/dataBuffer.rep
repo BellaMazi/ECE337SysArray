@@ -1,0 +1,131 @@
+Warning: Design 'dataBuffer' has '1' unresolved references. For more detailed information, use the "link" command. (UID-341)
+Information: Updating design information... (UID-85)
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 1
+Design : dataBuffer
+Version: W-2024.09-SP4
+Date   : Fri Apr 17 13:53:43 2026
+****************************************
+
+Operating Conditions: typical   Library: osu05_stdcells
+Wire Load Model Mode: top
+
+  Startpoint: sram_wr_en (input port)
+  Endpoint: hready_stall
+            (output port)
+  Path Group: (none)
+  Path Type: max
+
+  Point                                    Incr       Path
+  -----------------------------------------------------------
+  input external delay                     0.00       0.00 r
+  sram_wr_en (in)                          0.00       0.00 r
+  U1154/Y (OR2X2)                          0.32       0.32 r
+  U1162/Y (INVX8)                          0.58       0.90 f
+  U2106/Y (NAND2X1)                        0.75       1.65 r
+  U2105/Y (NOR2X1)                         0.84       2.48 f
+  hready_stall (out)                       0.00       2.48 f
+  data arrival time                                   2.48
+  -----------------------------------------------------------
+  (Path is unconstrained)
+
+
+1
+Warning: Design 'dataBuffer' has '1' unresolved references. For more detailed information, use the "link" command. (UID-341)
+ 
+****************************************
+Report : area
+Design : dataBuffer
+Version: W-2024.09-SP4
+Date   : Fri Apr 17 13:53:43 2026
+****************************************
+
+Library(s) Used:
+
+    osu05_stdcells (File: /home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db)
+
+Number of ports:                          226
+Number of nets:                          1633
+Number of cells:                         1270
+Number of combinational cells:           1068
+Number of sequential cells:               102
+Number of macros/black boxes:               0
+Number of buf/inv:                        342
+Number of references:                      19
+
+Combinational area:             277146.000000
+Buf/Inv area:                    51408.000000
+Noncombinational area:          152064.000000
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:                429210.000000
+Total area:                 undefined
+
+Information: This design contains black box (unknown) components. (RPT-8)
+1
+Loading db file '/home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db'
+Information: Propagating switching activity (low effort zero delay simulation). (PWR-6)
+Warning: There is no defined clock in the design. (PWR-80)
+Warning: Design has unannotated primary inputs. (PWR-414)
+Warning: Design has unannotated sequential cell outputs. (PWR-415)
+Warning: Design has unannotated black box outputs. (PWR-428)
+ 
+****************************************
+Report : power
+        -analysis_effort low
+Design : dataBuffer
+Version: W-2024.09-SP4
+Date   : Fri Apr 17 13:53:43 2026
+****************************************
+
+
+Library(s) Used:
+
+    osu05_stdcells (File: /home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db)
+
+
+Operating Conditions: typical   Library: osu05_stdcells
+Wire Load Model Mode: top
+
+
+Global Operating Voltage = 5    
+Power-specific unit information :
+    Voltage Units = 1V
+    Capacitance Units = 1.000000pf
+    Time Units = 1ns
+    Dynamic Power Units = 1mW    (derived from V,C,T units)
+    Leakage Power Units = 1nW
+
+
+Attributes
+----------
+i - Including register clock pin internal power
+
+
+  Cell Internal Power  =  76.8561 mW   (55%)
+  Net Switching Power  =  63.1087 mW   (45%)
+                         ---------
+Total Dynamic Power    = 139.9648 mW  (100%)
+
+Cell Leakage Power     = 131.3549 nW
+
+Information: report_power power group summary does not include estimated clock tree power. (PWR-789)
+
+                 Internal         Switching           Leakage            Total
+Power Group      Power            Power               Power              Power   (   %    )  Attrs
+--------------------------------------------------------------------------------------------------
+io_pad             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+memory             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+black_box          0.0000            0.0000            0.0000            0.0000  (   0.00%)
+clock_network      0.0000            0.0000            0.0000            0.0000  (   0.00%)  i
+register           0.0000            0.0000            0.0000            0.0000  (   0.00%)
+sequential        18.7274            0.2207           51.1659           18.9481  (  13.54%)
+combinational     58.1288           62.8879           80.1891          121.0170  (  86.46%)
+--------------------------------------------------------------------------------------------------
+Total             76.8562 mW        63.1086 mW       131.3549 nW       139.9651 mW
+1

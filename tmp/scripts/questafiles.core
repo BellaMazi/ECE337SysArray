@@ -1,0 +1,14 @@
+CAPI=2:
+name: "u337mg126:ece337:questafiles"
+
+filesets:
+    scripts:
+        files:
+            - "waves.tcl"
+        file_type: user
+
+targets:
+    default:
+        filesets:
+            - scripts
+

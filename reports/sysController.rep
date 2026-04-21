@@ -1,0 +1,134 @@
+Information: Updating design information... (UID-85)
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 1
+Design : sysController
+Version: W-2024.09-SP4
+Date   : Fri Apr 17 13:46:19 2026
+****************************************
+
+Operating Conditions: typical   Library: osu05_stdcells
+Wire Load Model Mode: top
+
+  Startpoint: state_reg[3]
+              (rising edge-triggered flip-flop)
+  Endpoint: input_vec[63]
+            (output port)
+  Path Group: (none)
+  Path Type: max
+
+  Point                                    Incr       Path
+  -----------------------------------------------------------
+  state_reg[3]/CLK (DFFSR)                 0.00       0.00 r
+  state_reg[3]/Q (DFFSR)                   0.61       0.61 r
+  U1075/Y (INVX1)                          0.43       1.04 f
+  U1073/Y (NAND3X1)                        0.32       1.36 r
+  U1072/Y (NOR2X1)                         0.31       1.67 f
+  U1071/Y (INVX1)                          0.24       1.91 r
+  U1070/Y (NAND2X1)                        0.32       2.23 f
+  U1069/Y (INVX1)                          0.34       2.57 r
+  U1068/Y (NAND2X1)                        0.06       2.64 f
+  U1067/Y (INVX1)                          0.20       2.84 r
+  U603/Y (OR2X2)                           0.32       3.16 r
+  U605/Y (INVX4)                           0.72       3.88 f
+  U1007/Y (AND2X1)                         0.38       4.26 f
+  input_vec[63] (out)                      0.00       4.26 f
+  data arrival time                                   4.26
+  -----------------------------------------------------------
+  (Path is unconstrained)
+
+
+1
+ 
+****************************************
+Report : area
+Design : sysController
+Version: W-2024.09-SP4
+Date   : Fri Apr 17 13:46:19 2026
+****************************************
+
+Library(s) Used:
+
+    osu05_stdcells (File: /home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db)
+
+Number of ports:                          350
+Number of nets:                           901
+Number of cells:                          699
+Number of combinational cells:            486
+Number of sequential cells:               105
+Number of macros/black boxes:               0
+Number of buf/inv:                        124
+Number of references:                      18
+
+Combinational area:             126846.000000
+Buf/Inv area:                    18432.000000
+Noncombinational area:          166320.000000
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:                293166.000000
+Total area:                 undefined
+1
+Loading db file '/home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db'
+Information: Propagating switching activity (low effort zero delay simulation). (PWR-6)
+Warning: There is no defined clock in the design. (PWR-80)
+Warning: Design has unannotated primary inputs. (PWR-414)
+Warning: Design has unannotated sequential cell outputs. (PWR-415)
+ 
+****************************************
+Report : power
+        -analysis_effort low
+Design : sysController
+Version: W-2024.09-SP4
+Date   : Fri Apr 17 13:46:19 2026
+****************************************
+
+
+Library(s) Used:
+
+    osu05_stdcells (File: /home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db)
+
+
+Operating Conditions: typical   Library: osu05_stdcells
+Wire Load Model Mode: top
+
+
+Global Operating Voltage = 5    
+Power-specific unit information :
+    Voltage Units = 1V
+    Capacitance Units = 1.000000pf
+    Time Units = 1ns
+    Dynamic Power Units = 1mW    (derived from V,C,T units)
+    Leakage Power Units = 1nW
+
+
+Attributes
+----------
+i - Including register clock pin internal power
+
+
+  Cell Internal Power  =  34.7534 mW   (81%)
+  Net Switching Power  =   8.2164 mW   (19%)
+                         ---------
+Total Dynamic Power    =  42.9697 mW  (100%)
+
+Cell Leakage Power     =  94.7842 nW
+
+Information: report_power power group summary does not include estimated clock tree power. (PWR-789)
+
+                 Internal         Switching           Leakage            Total
+Power Group      Power            Power               Power              Power   (   %    )  Attrs
+--------------------------------------------------------------------------------------------------
+io_pad             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+memory             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+black_box          0.0000            0.0000            0.0000            0.0000  (   0.00%)
+clock_network      0.0000            0.0000            0.0000            0.0000  (   0.00%)  i
+register           0.0000            0.0000            0.0000            0.0000  (   0.00%)
+sequential        23.5023            0.4382           55.9627           23.9406  (  55.71%)
+combinational     11.2511            7.7781           38.8215           19.0292  (  44.29%)
+--------------------------------------------------------------------------------------------------
+Total             34.7534 mW         8.2164 mW        94.7842 nW        42.9698 mW
+1

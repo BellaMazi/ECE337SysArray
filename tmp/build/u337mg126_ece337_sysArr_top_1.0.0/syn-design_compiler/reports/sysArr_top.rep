@@ -1,0 +1,123 @@
+Information: Updating design information... (UID-85)
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 1
+Design : sysArr_top
+Version: W-2024.09-SP4
+Date   : Sat Apr 18 19:55:49 2026
+****************************************
+
+Operating Conditions: typical   Library: osu05_stdcells
+Wire Load Model Mode: top
+
+  Startpoint: ahb_sub/hrdata_reg[34]
+              (rising edge-triggered flip-flop)
+  Endpoint: hrdata[34] (output port)
+  Path Group: (none)
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  ahb_sub/hrdata_reg[34]/CLK (DFFSR)                      0.00       0.00 r
+  ahb_sub/hrdata_reg[34]/Q (DFFSR)                        0.55       0.55 f
+  ahb_sub/hrdata[34] (ahb_subordinate_cdl)                0.00       0.55 f
+  hrdata[34] (out)                                        0.00       0.55 f
+  data arrival time                                                  0.55
+  --------------------------------------------------------------------------
+  (Path is unconstrained)
+
+
+1
+ 
+****************************************
+Report : area
+Design : sysArr_top
+Version: W-2024.09-SP4
+Date   : Sat Apr 18 19:55:49 2026
+****************************************
+
+Library(s) Used:
+
+    osu05_stdcells (File: /home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db)
+
+Number of ports:                         6190
+Number of nets:                        923746
+Number of cells:                       917090
+Number of combinational cells:         714736
+Number of sequential cells:            199371
+Number of macros/black boxes:               0
+Number of buf/inv:                     264217
+Number of references:                       7
+
+Combinational area:          197595180.000000
+Buf/Inv area:                 42116040.000000
+Noncombinational area:       174245904.000000
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:             371841084.000000
+Total area:                 undefined
+1
+Loading db file '/home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db'
+Information: Propagating switching activity (low effort zero delay simulation). (PWR-6)
+Warning: There is no defined clock in the design. (PWR-80)
+Warning: Design has unannotated primary inputs. (PWR-414)
+Warning: Design has unannotated sequential cell outputs. (PWR-415)
+ 
+****************************************
+Report : power
+        -analysis_effort low
+Design : sysArr_top
+Version: W-2024.09-SP4
+Date   : Sat Apr 18 19:56:29 2026
+****************************************
+
+
+Library(s) Used:
+
+    osu05_stdcells (File: /home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db)
+
+
+Operating Conditions: typical   Library: osu05_stdcells
+Wire Load Model Mode: top
+
+
+Global Operating Voltage = 5    
+Power-specific unit information :
+    Voltage Units = 1V
+    Capacitance Units = 1.000000pf
+    Time Units = 1ns
+    Dynamic Power Units = 1mW    (derived from V,C,T units)
+    Leakage Power Units = 1nW
+
+
+Attributes
+----------
+i - Including register clock pin internal power
+
+
+  Cell Internal Power  =  51.0357  W   (73%)
+  Net Switching Power  =  18.8901  W   (27%)
+                         ---------
+Total Dynamic Power    =  69.9258  W  (100%)
+
+Cell Leakage Power     = 104.5645 uW
+
+Information: report_power power group summary does not include estimated clock tree power. (PWR-789)
+
+                 Internal         Switching           Leakage            Total
+Power Group      Power            Power               Power              Power   (   %    )  Attrs
+--------------------------------------------------------------------------------------------------
+io_pad             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+memory             0.0000            0.0000            0.0000            0.0000  (   0.00%)
+black_box          0.0000            0.0000            0.0000            0.0000  (   0.00%)
+clock_network      0.0000            0.0000            0.0000            0.0000  (   0.00%)  i
+register           0.0000            0.0000            0.0000            0.0000  (   0.00%)
+sequential     4.8261e+04            3.0881        4.9300e+04        4.8264e+04  (  69.11%)
+combinational  2.6884e+03        1.8885e+04        5.5264e+04        2.1572e+04  (  30.89%)
+--------------------------------------------------------------------------------------------------
+Total          5.0949e+04 mW     1.8888e+04 mW     1.0456e+05 nW     6.9836e+04 mW
+1

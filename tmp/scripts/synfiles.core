@@ -1,0 +1,15 @@
+CAPI=2:
+name: "u337mg126:ece337:synfiles"
+
+filesets:
+    scripts:
+        files:
+            - "synth.tcl": { file_type: user }
+            - "detect-reset-logic.tcl"
+        file_type: tclSource
+
+targets:
+    default:
+        filesets:
+            - scripts
+

@@ -1,0 +1,15 @@
+CAPI=2:
+name: "u337mg126:ece337:sysArr_top_syn"
+
+filesets:
+    netlist:
+        files:
+            - "sysArr_top.v"
+        file_type: systemVerilogSource
+
+targets:
+    default:
+        filesets:
+            - netlist
+        toplevel: sysArr_top
+

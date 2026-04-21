@@ -1,0 +1,15 @@
+CAPI=2:
+name: "u337mg126:ece337:sysController_syn"
+
+filesets:
+    netlist:
+        files:
+            - "sysController.v"
+        file_type: systemVerilogSource
+
+targets:
+    default:
+        filesets:
+            - netlist
+        toplevel: sysController
+

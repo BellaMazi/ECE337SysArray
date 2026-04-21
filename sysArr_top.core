@@ -1,0 +1,109 @@
+CAPI=2:
+name: "u337mg126:ece337:sysArr_top:1.0.0"
+description: ""
+
+filesets:
+    rtl:
+        files:
+            - "source/sysArr_top.sv"
+        file_type: systemVerilogSource
+        depend:
+            - "u337mg126:ece337:dataBuffer:1.0.0"
+            - "u337mg126:ece337:activation:1.0.0"
+            - "u337mg126:ece337:ahb_subordinate_cdl:1.0.0"
+            - "u337mg126:ece337:bias_adder:1.0.0"
+            - "u337mg126:ece337:fp_adder:1.0.0"
+            - "u337mg126:ece337:fp_multiplier:1.0.0"
+            - "u337mg126:ece337:sysController:1.0.0"
+            - "ece337:course-lib:sram1024x32_wrapper:1.0.0"
+            - "u337mg126:ece337:systolic_array:1.0.0"
+
+    synth:
+        depend:
+            - "ece337:tech:AMI_05_LIB"
+            - "u337mg126:ece337:sysArr_top_syn"
+
+    tb:
+        files:
+            - "testbench/tb_sysArr_top.sv"
+            - "waves/sysArr_top.do": { file_type: user }
+            - "waves/sysArr_top.gtkw": { file_type: user }
+            # - "data/file.txt": { file_type: user }
+        file_type: systemVerilogSource
+        depend:
+            - "u337mg126:ece337:questafiles"
+            #- "ece337:course-lib:sram1024x32_wrapper:1.0.0"
+
+    synfiles:
+        files:
+            - "scripts/syn_sysArr_top.tcl"
+        file_type: tclSource
+        depend:
+            - "u337mg126:ece337:synfiles"
+
+targets:
+    default: &default
+        filesets:
+            - rtl
+        toplevel: sysArr_top
+
+    sim: &sim
+        <<: *default
+        default_tool: verilator
+        filesets_append:
+            - tb
+        toplevel: tb_sysArr_top
+        tools:
+            modelsim:
+                vsim_options:
+                    - -vopt
+                    - -voptargs='+acc'
+                    - -t ps
+                    - -do "source waves.tcl ; load_wave waves/sysArr_top.do"
+                    - -onfinish stop
+                    - -do "set PrefSource(OpenOnFinish) 0 ; set PrefMain(LinePrefix) \"\" ; set PrefMain(colorizeTranscript) 1"
+                    - -coverage
+                vlog_options:
+                    - +cover
+            verilator:
+                verilator_options:
+                    - --cc
+                    - --trace
+                    - --main
+                    - --timing
+                    - --coverage
+                make_options:
+                    - -j
+
+    lint:
+        <<: *default
+        default_tool: verilator
+        filesets_append:
+            - tb
+        tools:
+            verilator:
+                mode: lint-only
+                verilator_options:
+                    - --timing
+                    - -Wall
+
+    syn:
+        <<: *default
+        filesets_append:
+            - synfiles
+        default_tool: design_compiler
+        toplevel: sysArr_top
+        tools:
+            design_compiler:
+                script_dir: "src/u337mg126_ece337_synfiles_0"
+                dc_script: "synth.tcl"
+                report_dir: "reports"
+                target_library: "/home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db"
+                libs: "/home/ecegrid/a/ece337/summer24-refactor/tech/ami05/osu05_stdcells.db dw_foundation.sldb"
+
+    syn_sim:
+        <<: *sim
+        filesets:
+            - synth
+            - tb
+

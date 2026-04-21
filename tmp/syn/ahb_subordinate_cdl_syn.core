@@ -1,0 +1,15 @@
+CAPI=2:
+name: "u337mg126:ece337:ahb_subordinate_cdl_syn"
+
+filesets:
+    netlist:
+        files:
+            - "ahb_subordinate_cdl.v"
+        file_type: systemVerilogSource
+
+targets:
+    default:
+        filesets:
+            - netlist
+        toplevel: ahb_subordinate_cdl
+
