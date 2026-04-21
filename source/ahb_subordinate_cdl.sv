@@ -48,13 +48,13 @@ module ahb_subordinate_cdl #(
     logic [2:0] dph_hsize;
     logic [9:0] dph_haddr;
     logic dph_error;
-    logic dph_stall; // capture hready_stall at addr phase
+    //logic dph_stall; // capture hready_stall at addr phase
 
     logic addr_active;
     assign addr_active = hsel && (htrans ==2'b10 || htrans==2'b11);
     
-    logic [9:0] addr_base;
-    assign addr_base = {haddr[9:3],3'b000};
+    // logic [9:0] addr_base;
+    // assign addr_base = {haddr[9:3],3'b000};
     //valid address check
     logic addr_valid;
     always_comb begin
@@ -180,7 +180,24 @@ module ahb_subordinate_cdl #(
                     reg_ctrl <= hwdata[17:16];
                 end
                 if(dph_haddr[9:3]==7'h002) begin //0x10 = bias register
-                    reg_bias <= hwdata;
+                    case(dph_hsize[1:0])
+                        2'b11: reg_bias <= hwdata; //8-byte
+                        2'b10: begin
+                            // 4-byte
+                            if(!dph_haddr[2]) begin
+                                reg_bias[31:0] <= hwdata[31:0];
+                            end else begin
+                                reg_bias[63:32] <= hwdata[63:32];
+                            end
+                        end
+                        2'b01: begin
+                            // 2-byte
+                            reg_bias[dph_haddr[2:1]*16 +:16] <= hwdata[dph_haddr[2:1]*16+:16];
+                        end
+                        2'b00: begin
+                            reg_bias[dph_haddr[2:0]*8+:8]<= hwdata[dph_haddr[2:0]*8 +: 8];
+                        end
+                    endcase
                 end
                 if(dph_haddr==10'h024) begin
                     reg_act <= hwdata[34:32];
@@ -213,7 +230,26 @@ module ahb_subordinate_cdl #(
         read_data = 64'h0;
         if(addr_active && !hwrite && !addr_error) begin
             case(haddr[9:3])
-                7'h002: read_data = reg_bias;
+                7'h002: begin
+                    case(hsize[1:0])
+                        2'b11: read_data = reg_bias; // 8-byte
+                        2'b10: begin
+                            if(!haddr[2]) begin
+                                read_data = {32'h0,reg_bias[31:0]};
+                            end else begin
+                                read_data = {reg_bias[63:32],32'h0};
+                            end
+                        end
+                        2'b01: begin
+                            read_data = 64'h0;
+                            read_data[haddr[2:1]*16 +: 16] = reg_bias[haddr[2:1]*16 +:16];
+                        end
+                        2'b00: begin
+                            read_data = 64'h0;
+                            read_data[haddr[2:0]*8 +:8] = reg_bias[haddr[2:0]*8 +:8];
+                        end
+                    endcase
+                end
                 7'h003: read_data=64'h0;
                 default: begin
                     if(haddr ==10'h020) read_data={56'h0,reg_err[7:0]};
