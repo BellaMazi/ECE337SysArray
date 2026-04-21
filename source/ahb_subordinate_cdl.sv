@@ -41,18 +41,14 @@ module ahb_subordinate_cdl #(
     //localparam logic [9:0] ADDR_CONTROL = 10'h022;
     //localparam logic [9:0] ADDR_STATUS = 10'h023;
     //localparam logic [9:0] ADDR_ACTIV=10'h024;
-
-
     logic dph_valid;
     logic dph_write;
     logic [2:0] dph_hsize;
     logic [9:0] dph_haddr;
     logic dph_error;
     //logic dph_stall; // capture hready_stall at addr phase
-
     logic addr_active;
     assign addr_active = hsel && (htrans ==2'b10 || htrans==2'b11);
-    
     // logic [9:0] addr_base;
     // assign addr_base = {haddr[9:3],3'b000};
     //valid address check
@@ -86,15 +82,12 @@ module ahb_subordinate_cdl #(
     end
     logic sram_access;
     assign sram_access = (haddr[9:5]==5'h00);
-
     // busy stall
     logic addr_error;
     assign addr_error = addr_active && (!addr_valid || write_ro||(occ_err&&sram_access));
-    
     //error response state machine
     typedef enum logic [1:0] {ERR_IDLE,ERR_CYC1, ERR_CYC2} err_state_t;
     err_state_t err_state, err_next;
-
     always_ff @(posedge clk,negedge n_rst) begin
         if(!n_rst)begin
             err_state <= ERR_IDLE;
@@ -131,7 +124,6 @@ module ahb_subordinate_cdl #(
             end
         end
     end
-
     logic bus_ready;
     assign bus_ready = (err_state==ERR_IDLE) && !hready_stall;
     /// capture address phase into data phase pipeline regs
@@ -150,16 +142,13 @@ module ahb_subordinate_cdl #(
             dph_error <= addr_error;
         end
     end
-    
     //internal regs
     logic [63:0] reg_bias;
     logic [1:0] reg_ctrl;
     logic [2:0] reg_act;
     logic[15:0] reg_err;
     logic [1:0] reg_status;
-
     assign reg_err = {6'h0,inf_err,nan_err,4'h0,occ_err,overrun_err,occ_err,1'b0};
-    
     assign reg_status =status_reg_ctrl;
     //control reg
     always_ff @(posedge clk,negedge n_rst)begin
@@ -205,12 +194,10 @@ module ahb_subordinate_cdl #(
             end
         end
     end
-
     // output signals to controller
     assign ctrl_reg = reg_ctrl;
     assign bias = reg_bias;
     assign active_mode = reg_act;
-
     // pulse signals, assert for one cycle when valid write to respective register
     always_ff @(posedge clk, negedge n_rst)begin
         if(!n_rst) begin
@@ -224,7 +211,6 @@ module ahb_subordinate_cdl #(
             clear_errors <= dph_valid && !dph_write && !dph_error && (dph_haddr[9:1]==9'h010);
         end
     end
-
     logic [63:0] read_data;
     always_comb begin
         read_data = 64'h0;
@@ -265,7 +251,6 @@ module ahb_subordinate_cdl #(
             endcase
         end
     end
-
     // raw hazard
     // logic [9:3] cur_base, dph_base;
     // assign cur_base = haddr[9:3];
