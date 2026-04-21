@@ -31,16 +31,13 @@ module sysController #(
     output logic [1:0] status_reg, //bit[0] = infer_done bit[1] = busy
     output logic [1:0] act_ctrl_out //passthrough to activation block
 );
-
     localparam [9:0] WT_BASE = 10'd0; //rows 0-63, weights
     localparam [9:0] IN_BASE = 10'd64; //rows 64-71, inputs
     localparam [9:0] OUT_BASE = 10'd72; //rows 72-79, outputs
-
     localparam SRAM_FREE = 2'd0;
     localparam SRAM_BUSY = 2'd1;
     localparam SRAM_ACCESS = 2'd2;
     //localparam SRAM_ERROR = 2'd3; 
-
     typedef enum logic [3:0] {
         IDLE = 4'd0,
         LOAD_WEIGHTS = 4'd1,
@@ -64,14 +61,11 @@ module sysController #(
     logic [9:0] hold_addr;
     logic hold_rd_en, hold_wr_en;
     logic [63:0] hold_wr_data;
-
     logic ahb_store_en, next_ahb_store_en;
     logic [9:0] ahb_store_addr, next_ahb_store_addr;
     logic [63:0] ahb_store_data, next_ahb_store_data;
-
     logic [5:0] wt_wr_ptr, next_wt_wr_ptr;
     logic [2:0] in_wr_ptr, next_in_wr_ptr;
-
     assign act_ctrl_out = act_ctrl;
     assign status_reg = status_ff;
 
@@ -87,7 +81,6 @@ module sysController #(
         next_ahb_store_en = 1'b0;
         next_ahb_store_addr = 10'd0;
         next_ahb_store_data = 64'd0;
-
         if(state == IDLE) begin  
             if(ahb_wr_weight) begin
                 next_ahb_store_en = 1'b1;
@@ -104,7 +97,6 @@ module sysController #(
                     next_in_wr_ptr = in_wr_ptr + 3'd1;
             end
         end
-
         case(state)
             IDLE: begin
                 if(ctrl_reg[1]) begin
@@ -152,13 +144,11 @@ module sysController #(
                 next_status[1] = 1'b0; //clear busy
                 //next_wt_wr_ptr = 6'd0; //reset weight pointer for next load
             end
-
             INFER_FEED: begin
                 next_lat_counter = lat_counter + 6'd1;
                 if(sram_state == SRAM_BUSY) begin
                     next_state = IN_SRAM_WAIT;
-                end
-                
+                end 
                 // if(sram_state == SRAM_BUSY) begin
                 //     next_state = IN_SRAM_WAIT;
                 // end
@@ -173,7 +163,6 @@ module sysController #(
                 //     end
                 // end
             end
-
             IN_SRAM_WAIT: begin
                 next_lat_counter = lat_counter + 6'd1;
                 if(sram_state == SRAM_ACCESS) begin
@@ -187,14 +176,12 @@ module sysController #(
                     end
                 end
             end
-
             INFER_DRAIN: begin
                 next_lat_counter = lat_counter + 6'd1;
                 if(lat_counter >= 6'd40) begin //55 cycles
                     next_state = CAPTURE_OUT;
                 end
             end
-
             CAPTURE_OUT: begin
                 if(sram_state == SRAM_BUSY) begin
                     next_state = OUT_SRAM_WAIT;
@@ -209,7 +196,6 @@ module sysController #(
                 //     end
                 // end
             end
-
             OUT_SRAM_WAIT: begin
                 if(sram_state == SRAM_ACCESS) begin
                     if(out_counter == 3'd7) begin
@@ -222,17 +208,14 @@ module sysController #(
                     end
                 end
             end
-
             DONE: begin
                 next_state = IDLE;
                 next_status[0] = 1'b1; //inference complete
                 next_status[1] = 1'b0;
                 //next_in_wr_ptr = 3'd0;
             end
-
             default: next_state = IDLE;
         endcase
-        
     end
 
     always_ff @(posedge clk, negedge n_rst) begin
@@ -265,7 +248,6 @@ module sysController #(
             ahb_store_en <= next_ahb_store_en;
             ahb_store_addr <= next_ahb_store_addr;
             ahb_store_data <= next_ahb_store_data;
-
             // if(sram_state == SRAM_FREE) begin
             //     hold_addr <= sram_addr;
             //     hold_rd_en <= sram_rd_en;
@@ -284,7 +266,6 @@ module sysController #(
         run_array = 1'b0;
         input_vec = 64'd0;
         ctrl_reg_clear = 2'b00;
-
         case(state)
             IDLE: begin
                 if(ahb_store_en) begin
@@ -306,7 +287,6 @@ module sysController #(
                     input_vec = sram_rd_data;
                 end
             end
-
             WT_SRAM_WAIT: begin
                 sram_rd_en = 1'b1;
                 sram_addr = WT_BASE + {4'd0, wt_counter}; 
@@ -314,9 +294,7 @@ module sysController #(
                     load_weights = 1'b1;
                     input_vec = sram_rd_data;
                 end
-                //load weights stays 0 - don't latch garbage data
             end
-
             WT_DONE: begin
                 ctrl_reg_clear[1] = 1'b1; //tell AHB to clear load weights
             end
@@ -328,7 +306,6 @@ module sysController #(
                     input_vec = sram_rd_data;
                 end
             end
-            
             IN_SRAM_WAIT: begin
                 sram_rd_en = 1'b1;
                 sram_addr = IN_BASE + {7'd0, row_counter}; //keep run array 0
@@ -337,26 +314,21 @@ module sysController #(
                     input_vec = sram_rd_data;
                 end
             end
-            
             INFER_DRAIN: begin
             end
-            
             CAPTURE_OUT: begin
                 sram_wr_en = 1'b1;
                 sram_addr = OUT_BASE + {7'd0, out_counter};
                 sram_wr_data = activations;
             end
-
             OUT_SRAM_WAIT: begin
                 sram_wr_en = 1'b1;
                 sram_addr = OUT_BASE + {7'd0, out_counter};
                 sram_wr_data = activations;
             end
-
             DONE: begin
                 ctrl_reg_clear[0] = 1'b1; //tell AHB sub to clear start bit?
             end
-
             default: begin
                 sram_rd_en = 1'b0;
                 sram_wr_en = 1'b0;
@@ -369,7 +341,5 @@ module sysController #(
             end
         endcase
     end
-
-
 endmodule
 
