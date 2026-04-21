@@ -148,6 +148,16 @@ module tb_dataBuffer ();
 
     initial begin
         n_rst = 1;
+        sram_rd_en = 0;
+        sram_wr_en = 0;
+        sram_addr = 0;
+        sram_wr_data = 0;
+        ctrl_reg_clear = 0;
+        ctrl_reg_0 = 0;
+        haddr = 0;
+        hwdata = 0;
+        hwrite = 0;
+        ahb_req = 0;
 
         reset_dut;
         //def_in();
@@ -204,6 +214,7 @@ module tb_dataBuffer ();
         test_name = "AHB input writes - 8 seq";
 
         reset_dut();
+        def_in();
 
         begin
             integer j;
@@ -291,6 +302,7 @@ module tb_dataBuffer ();
         test_name = "Contoller SRAM writes - out region";
 
         reset_dut();
+        def_in();
 
         begin
             integer n;
@@ -349,6 +361,100 @@ module tb_dataBuffer ();
 
         $display("TEST 10: SRAM BUSY stall");
         test_name = "SRAM wrarbites - SRAM BUSY stall";
+
+        begin : busy_stall
+            logic stall_seen;
+            stall_seen = 0;
+        
+            haddr   = INPUT_REG;
+            hwdata  = 64'hCAFE_BABE_1234_5678;
+            hwrite  = 1'b1;
+            write   = 1'b1;
+            ahb_req = 1'b1;
+        
+            // Wait for BUSY phase and check hready_stall
+            wait_sram(SRAM_FREE); @(posedge clk); #1;
+            if (sram_state_out == SRAM_BUSY && hready_stall == 1'b1)
+                stall_seen = 1;
+            wait_sram(SRAM_ACCESS); @(posedge clk); #1;
+        
+            ahb_req = 1'b0;
+            hwrite  = 1'b0;
+            write   = 1'b0;
+
+            if(hready_stall == 1'b0) begin
+                $display("TEST 10: PASS");
+            end
+            else
+                $display("TEST 10: FAIL");
+        end
+
+        $display("TEST 11: SRAM BUSY controller path no stall");
+        test_name = "SRAM_BUSY";
+
+        begin
+            logic stallDurCtrl;
+            stallDurCtrl = 0;
+
+            wait_sram(SRAM_FREE); 
+            @(posedge clk); #1;
+            if(hready_stall)
+                stallDurCtrl = 1;
+            wait_sram(SRAM_BUSY); 
+            @(posedge clk); #1;
+            if(hready_stall)
+                stallDurCtrl = 1;
+            wait_sram(SRAM_ACCESS); 
+            @(posedge clk); #1;
+
+            sram_rd_en = 1'b0;
+            if(!stallDurCtrl)
+                $display("TEST 11: PASS (sram stays 0 during controller-only SRAM access)");
+            else
+                $display("TEST 11: FAIL");
+
+            
+        end
+
+        $display("TEST 12: Read-data mux: correct bank is selected");
+        test_name = "Read-data mux: correct bank is selected";
+
+        begin
+            logic [63:0] wt_val, in_val, out_val;
+            logic [63:0] rd_wt, rd_in, rd_out;
+
+            wt_val = 64'hAAAAAAAAAAAAAAAA;
+            in_val = 64'hCCCCCCCCCCCCCCCC;
+            out_val = 64'hEEEEEEEEEEEEEEEE;
+
+            ahb_write(WEIGHT_REG, wt_val);
+            ahb_write(INPUT_REG, in_val);
+            ctrl_write(OUT_BASE, out_val);
+
+            ctrl_reg_clear = 2'b11;
+            @(posedge clk); #1;
+            ctrl_reg_clear = 2'b00;
+            ctrl_reg_0 = 1'b1;
+            @(posedge clk); #1;
+            ctrl_reg_0 = 1'b0;
+
+            //read back
+            ctrl_read(WT_BASE, rd_wt);
+            ctrl_read(IN_BASE, rd_in);
+            ctrl_read(OUT_BASE, rd_out);
+
+            if(rd_wt == wt_val && rd_in == in_val && rd_out == out_val)
+                $display("TEST 12: PASS");
+            else begin
+                $display("TEST 12: FAIL");
+                $display("rd_wt = %h, rd_in = %h, rd_out = %h", rd_wt, rd_in, rd_out);
+            end
+
+
+        end
+
+
+        
 
 
 

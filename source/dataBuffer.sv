@@ -46,7 +46,7 @@ module dataBuffer #(
 
     logic [1:0] sram_state;
 
-    logic [1:0] wt_sram_hi_state;
+    logic [1:0] wt_sram_hi_state, wt_sram_lo_state;
     logic [1:0] in_sram_hi_state;
     logic [1:0] in_sram_lo_state;
     logic [1:0] out_sram_hi_state;
@@ -62,20 +62,34 @@ module dataBuffer #(
 
     logic [31:0] wt_hi_rd, wt_lo_rd, in_hi_rd, in_lo_rd, out_hi_rd, out_lo_rd;
 
-    logic [5:0] wt_wr_ptr, next_wt_wr_ptr;
-    logic [2:0] in_wr_ptr, next_in_wr_ptr, out_rd_ptr, next_out_rd_ptr;
+    logic [6:0] wt_wr_ptr, next_wt_wr_ptr;
+    logic [3:0] in_wr_ptr, next_in_wr_ptr;
+    logic [2:0] out_rd_ptr, next_out_rd_ptr;
     logic [3:0] out_valid_cnt, next_out_valid_cnt;
     logic occ_err_ff, next_occ_err, overrun_err_ff, next_overrun_err;
     logic [1:0] last_rd_region, next_last_rd_region;
 
-    logic [9:0] hold_addr;
-    logic hold_re, hold_we;
-    logic [63:0] hold_wdata;
+    logic [9:0] hold_addr, next_hold_addr;
+    logic hold_re, next_hold_re, hold_we, next_hold_we;
+    logic [63:0] hold_wdata, next_hold_wdata;
     logic [9:0] ahb_mapped_addr;
 
     assign sram_state_out = sram_state;
     assign occ_err = occ_err_ff;
     assign overrun_err = overrun_err_ff;
+
+    always_comb begin
+        if (wt_sram_hi_state == SRAM_BUSY || wt_sram_lo_state == SRAM_BUSY ||
+            in_sram_hi_state == SRAM_BUSY || in_sram_lo_state == SRAM_BUSY ||
+            out_sram_hi_state == SRAM_BUSY || out_sram_lo_state == SRAM_BUSY)
+            sram_state = SRAM_BUSY;
+        else if (wt_sram_hi_state == SRAM_ACCESS || wt_sram_lo_state == SRAM_ACCESS ||
+                 in_sram_hi_state == SRAM_ACCESS || in_sram_lo_state == SRAM_ACCESS ||
+                 out_sram_hi_state == SRAM_ACCESS || out_sram_lo_state == SRAM_ACCESS)
+            sram_state = SRAM_ACCESS;
+        else
+            sram_state = SRAM_FREE;
+    end
 
     always_comb begin
         sram_address = 10'd0;
@@ -90,14 +104,18 @@ module dataBuffer #(
         next_occ_err = occ_err_ff;
         next_overrun_err = overrun_err;
         next_last_rd_region = last_rd_region;
+        next_hold_addr = hold_addr;
+        next_hold_re = hold_re;
+        next_hold_we = hold_we;
+        next_hold_wdata = hold_wdata;
         ahb_mapped_addr = 10'd0;
 
         //AHB address decode
         if(haddr == WEIGHT_REG) begin
-            ahb_mapped_addr = WT_BASE + {4'd0, wt_wr_ptr};
+            ahb_mapped_addr = WT_BASE + {3'd0, (wt_wr_ptr <= 7'd63 ? wt_wr_ptr[5:0] : 6'd63)};
         end
         else if(haddr == INPUT_REG) begin
-            ahb_mapped_addr = IN_BASE + {7'd0, in_wr_ptr};
+            ahb_mapped_addr = IN_BASE + {6'd0, (in_wr_ptr[2:0])};
         end
         else if(haddr == OUTPUT_REG) begin
             ahb_mapped_addr = OUT_BASE + {7'd0, out_rd_ptr};
@@ -145,22 +163,34 @@ module dataBuffer #(
                 next_last_rd_region = RGN_OUT;
             end
         end
+        else if(ahb_req && !hwrite && sram_state != SRAM_BUSY) begin
+            if(haddr == WEIGHT_REG) begin
+                next_last_rd_region = RGN_WT;
+            end
+            else if (haddr == INPUT_REG) begin
+                next_last_rd_region = RGN_IN;
+            end
+            else if (haddr == OUTPUT_REG) begin
+                next_last_rd_region = RGN_OUT;
+            end
+
+        end
 
         if(ahb_req && hwrite && (haddr == WEIGHT_REG) && (sram_state == SRAM_ACCESS)) begin
-            if(wt_wr_ptr == 6'd63) begin
+            if(wt_wr_ptr >= 7'd64) begin
                 next_occ_err = 1'b1;
             end
             else begin
-                next_wt_wr_ptr = wt_wr_ptr + 6'd1;
+                next_wt_wr_ptr = wt_wr_ptr + 7'd1;
             end
         end
 
         if(ahb_req && hwrite && (haddr == INPUT_REG) && (sram_state == SRAM_ACCESS)) begin
-            if(in_wr_ptr == 3'd7) begin
+            if(in_wr_ptr == 4'd8) begin
                 next_occ_err = 1'b1;
             end
             else begin
-                next_in_wr_ptr = in_wr_ptr + 3'd1;
+                next_in_wr_ptr = in_wr_ptr + 4'd1;
             end
         end
 
@@ -185,18 +215,25 @@ module dataBuffer #(
         end
 
         if(ctrl_reg_clear[1]) 
-            next_wt_wr_ptr = 6'd0; //weight loading done
+            next_wt_wr_ptr = 7'd0; //weight loading done
         if(ctrl_reg_clear[0])
             next_out_rd_ptr = 3'd0; //inference done
         if(ctrl_reg_0)
-            next_in_wr_ptr = 3'd0; //new inference starting
+            next_in_wr_ptr = 4'd0; //new inference starting
+ 
+        if(sram_state == SRAM_FREE) begin
+            next_hold_addr = sram_address;
+            next_hold_re = sram_re;
+            next_hold_we = sram_we;
+            next_hold_wdata = sram_wdata;
+        end
         
     end
 
     always_ff @(posedge clk, negedge n_rst) begin
         if(!n_rst) begin
-            wt_wr_ptr <= 6'd0;
-            in_wr_ptr <= 3'd0;
+            wt_wr_ptr <= 7'd0;
+            in_wr_ptr <= 4'd0;
             out_rd_ptr <= 3'd0;
             out_valid_cnt <= 4'd0;
             occ_err_ff <= 1'b0;
@@ -215,13 +252,10 @@ module dataBuffer #(
             occ_err_ff <= next_occ_err;
             overrun_err_ff <= next_overrun_err;
             last_rd_region <= next_last_rd_region;
-
-            if(sram_state == SRAM_FREE) begin
-                hold_addr <= sram_address;
-                hold_re <= sram_re;
-                hold_we <= sram_we;
-                hold_wdata <= sram_wdata;
-            end
+            hold_addr <= next_hold_addr;
+            hold_re <= next_hold_re;
+            hold_we <= next_hold_we;
+            hold_wdata <= next_hold_wdata;
         end
     end
 
@@ -256,7 +290,7 @@ module dataBuffer #(
 
     sram1024x32_wrapper wt_sram_lo(.clk(clk), .n_rst(n_rst), 
     .address(wt_addr), .read_enable(wt_re), .write_enable(wt_we), 
-    .write_data(sram_wdata[31:0]), .read_data(wt_lo_rd), .sram_state(sram_state));
+    .write_data(sram_wdata[31:0]), .read_data(wt_lo_rd), .sram_state(wt_sram_lo_state));
 
     sram1024x32_wrapper in_sram_hi(.clk(clk), .n_rst(n_rst), 
     .address(in_addr), .read_enable(in_re), .write_enable(in_we), 
