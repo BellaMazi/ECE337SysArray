@@ -194,6 +194,13 @@ module tb_dataBuffer ();
 
         $display("TEST 3: 65th weight write causes occ_err");
         test_name = "occ_err";
+
+        $display("TEST 3: before 65th write, wt_wr_ptr = %d, occ_err = %b", 
+        DUT.wt_wr_ptr, occ_err);
+        ahb_write(WEIGHT_REG, 64'hDEAD_BEEF_DEAD_BEEF);
+        $display("TEST 3: after 65th write, wt_wr_ptr = %d, occ_err = %b",
+        DUT.wt_wr_ptr, occ_err);
+
         ahb_write(WEIGHT_REG, 64'hDEAD_BEEF_DEAD_BEEF);
         if(occ_err == 1'b1)
             $display("TEST 3: err assert PASS");
@@ -469,6 +476,160 @@ module tb_dataBuffer ();
 
 
         end
+
+        test_name = "Back-to-back reads different regions";
+        $display("TEST 13: %s", test_name);
+        reset_dut();
+ 
+        begin
+            logic [63:0] rd_a, rd_b;
+    
+            ahb_write(WEIGHT_REG, 64'h1111_1111_1111_1111);
+            ctrl_write(OUT_BASE,  64'h9999_9999_9999_9999);
+            ctrl_reg_clear = 2'b11; @(posedge clk); #1; ctrl_reg_clear = 2'b00;
+        
+            sram_rd_en = 1'b1; sram_addr = WT_BASE;
+            wait_sram(SRAM_FREE); @(posedge clk); #1;
+            wait_sram(SRAM_ACCESS); 
+            rd_a = sram_rd_data; 
+            @(posedge clk); #1;
+            sram_addr = OUT_BASE;
+            wait_sram(SRAM_FREE); 
+            @(posedge clk); #1;
+            wait_sram(SRAM_ACCESS); 
+            rd_b = sram_rd_data; 
+            @(posedge clk); #1;
+            sram_rd_en = 1'b0;
+        
+            if(rd_a == 64'h1111_1111_1111_1111)
+                $display("TEST 13: PASS first read (WT) not contaminated");
+            else
+                $display("TEST 13: FAIL first read bad");
+            if(rd_b == 64'h9999_9999_9999_9999)
+                $display("TEST 13: PASS second read (OUT) not contaminated");
+            else
+                $display("TEST 13: FAIL Second read bad");
+        end
+
+        test_name = "Overrun error — outputs overwritten before read";
+        $display("TEST 14:", test_name);
+        reset_dut();
+    
+        begin
+            integer p;
+            // First inference: controller writes 8 outputs (not read by AHB)
+            for (p = 0; p < 8; p++)
+                ctrl_write(OUT_BASE + p, 64'hFFFF_0000_0000_0000 | p);
+        
+            if(overrun_err == 1'b0)
+                $display("overrun_err=0 after first write set");
+        
+            // Second inference: controller writes again without AHB reading
+            for (p = 0; p < 8; p++)
+                ctrl_write(OUT_BASE + p, 64'hEEEE_0000_0000_0000 | p);
+        
+            if(overrun_err == 1'b1)
+                $display("TEST 14: PASS overrun_err=1 when outputs overwritten before read");
+            else
+                $display("TEST 14: FAIL");
+        end
+
+        test_name = "Overrun error clears on error reg read";
+        $display("TEST 15: %s", test_name);
+    
+        begin
+            logic [63:0] dummy;
+            ahb_read(ERROR_REG, dummy);
+            if(overrun_err == 1'b0)
+                $display("TEST 15: PASS overrun_err=0 after error register read");
+        end
+
+        test_name = "occ_err clears on error reg read";
+        $display("TEST 16: %s", test_name);
+        reset_dut();
+    
+        begin
+            integer q;
+            logic [63:0] dummy;
+            // Write 65 weights to trigger occ_err
+            for (q = 0; q < 65; q++)
+                ahb_write(WEIGHT_REG, 64'd0 | q);
+            if(occ_err == 1'b1)
+                $display("TEST 16: PASS occ_err=1 after 65th weight write");
+            else
+                $display("TEST 16: FAIL after 65th weight write");
+            ahb_read(ERROR_REG, dummy);
+            if(occ_err == 1'b0)
+                $display("TEST 16: PASS occ_err=0 after error register read");
+            else
+                $display("TEST 16: FAIL after err reg read");
+        end
+
+        test_name = "Pointer resets";
+        $display("TEST 17: %s", test_name);
+        reset_dut();
+    
+        begin
+            integer r;
+            logic [63:0] rd_val;
+        
+            // Advance wt_wr_ptr by writing 10 weights
+            for (r = 0; r < 10; r++)
+                ahb_write(WEIGHT_REG, 64'hAAAA_0000_0000_0000 | r);
+        
+            // Assert ctrl_reg_clear[1] — wt_wr_ptr should reset to 0
+            ctrl_reg_clear = 2'b10; @(posedge clk); #1; ctrl_reg_clear = 2'b00;
+        
+            // Write one more weight — should go to WT_BASE+0 if ptr reset
+            ahb_write(WEIGHT_REG, 64'hBEEF_BEEF_BEEF_BEEF);
+        
+            // Read WT_BASE+0 — should be the freshly written value
+            ctrl_read(WT_BASE, rd_val);
+            if(rd_val == 64'hBEEF_BEEF_BEEF_BEEF)
+                $display("TEST 17: PASS wt_wr_ptr reset to 0 after ctrl_reg_clear[1]");
+            else
+            $display("TEST 17: FAIL: wt_wr_ptr NOT reset to 0 after ctrl_reg_clear[1]");
+        
+            // Advance out_rd_ptr by reading 5 outputs
+            begin 
+                integer s;
+                logic [63:0] d;
+                for (s = 0; s < 8; s++)
+                ctrl_write(OUT_BASE + s, 64'hCCCC_0000_0000_0000 | s);
+                for (s = 0; s < 5; s++)
+                ahb_read(OUTPUT_REG, d);
+            end
+        
+            // Assert ctrl_reg_clear[0] — out_rd_ptr resets to 0
+            ctrl_reg_clear = 2'b01; @(posedge clk); #1; ctrl_reg_clear = 2'b00;
+        
+            // Next AHB read should return OUT_BASE+0 data
+            begin : out_rd_chk
+                logic [63:0] out_rd;
+                ahb_read(OUTPUT_REG, out_rd);
+                if(out_rd == 64'hCCCC_0000_0000_0000)
+                    $display("TEST 17: PASS out_rd_ptr reset to 0 after ctrl_reg_clear[0]");
+                else
+                    $display("TEST 17: FAIL out_rd_ptr NOT reset to 0 after ctrl_reg_clear[0]");
+            end
+        
+            // Advance in_wr_ptr by writing 4 inputs
+            for (r = 0; r < 4; r++)
+                ahb_write(INPUT_REG, 64'hDDDD_0000_0000_0000 | r);
+        
+            // Assert ctrl_reg_0 — in_wr_ptr resets to 0
+            ctrl_reg_0 = 1'b1; @(posedge clk); #1; ctrl_reg_0 = 1'b0;
+        
+            // Write one input — should go to IN_BASE+0
+            ahb_write(INPUT_REG, 64'hEEEE_EEEE_EEEE_EEEE);
+            ctrl_read(IN_BASE, rd_val);
+            if(rd_val == 64'hEEEE_EEEE_EEEE_EEEE)
+                $display("TEST 17: PASS in_wr_ptr reset to 0 after ctrl_reg_0");
+            else
+                $display("TEST 17: FAIL in_wr_ptr NOT reset to 0 after ctrl_reg_0");
+        end
+
+
 
 
         
