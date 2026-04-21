@@ -1,0 +1,50 @@
+version: 0.2.1
+dependencies:
+  u337mg126:ece337:fp_adder:1.0.0: []
+  u337mg126:ece337:fp_multiplier:1.0.0: []
+  u337mg126:ece337:questafiles:0: []
+  u337mg126:ece337:systolic_array:1.0.0:
+  - u337mg126:ece337:fp_adder:1.0.0
+  - u337mg126:ece337:fp_multiplier:1.0.0
+  - u337mg126:ece337:questafiles:0
+files:
+- file_type: systemVerilogSource
+  name: src/u337mg126_ece337_fp_adder_1.0.0/source/fp_adder.sv
+  core: u337mg126:ece337:fp_adder:1.0.0
+- file_type: systemVerilogSource
+  name: src/u337mg126_ece337_fp_multiplier_1.0.0/source/fp_multiplier.sv
+  core: u337mg126:ece337:fp_multiplier:1.0.0
+- file_type: user
+  name: src/u337mg126_ece337_questafiles_0/waves.tcl
+  core: u337mg126:ece337:questafiles:0
+- file_type: systemVerilogSource
+  name: src/u337mg126_ece337_systolic_array_1.0.0/source/systolic_array.sv
+  core: u337mg126:ece337:systolic_array:1.0.0
+- file_type: systemVerilogSource
+  name: src/u337mg126_ece337_systolic_array_1.0.0/testbench/tb_systolic_array.sv
+  core: u337mg126:ece337:systolic_array:1.0.0
+- file_type: user
+  name: src/u337mg126_ece337_systolic_array_1.0.0/waves/systolic_array.do
+  core: u337mg126:ece337:systolic_array:1.0.0
+- file_type: user
+  name: src/u337mg126_ece337_systolic_array_1.0.0/waves/systolic_array.gtkw
+  core: u337mg126:ece337:systolic_array:1.0.0
+hooks: {}
+name: u337mg126_ece337_systolic_array_1.0.0
+parameters: {}
+tool_options:
+  modelsim:
+    vsim_options:
+    - -vopt
+    - -voptargs='+acc'
+    - -t ps
+    - -do "source waves.tcl ; load_wave waves/systolic_array.do"
+    - -onfinish stop
+    - -do "set PrefSource(OpenOnFinish) 0 ; set PrefMain(LinePrefix) \"\" ; set PrefMain(colorizeTranscript)
+      1"
+    - -coverage
+    vlog_options:
+    - +cover
+toplevel: tb_systolic_array
+vpi: []
+flow_options: {}

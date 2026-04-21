@@ -1,0 +1,37 @@
+Reading pref.tclError: tag "Error" isn't defined in text widget
+
+//  Questa Sim-64
+//  Version 2021.4 linux_x86_64 Oct 13 2021
+//
+//  Copyright 1991-2021 Mentor Graphics Corporation
+//  All Rights Reserved.
+//
+//  QuestaSim and its associated documentation contain trade
+//  secrets and commercial or financial information that are the property of
+//  Mentor Graphics Corporation and are privileged, confidential,
+//  and exempt from disclosure under the Freedom of Information Act,
+//  5 U.S.C. Section 552. Furthermore, this information
+//  is prohibited from disclosure under the Trade Secrets Act,
+//  18 U.S.C. Section 1905.
+//
+vsim -gui -vopt -voptargs="+acc" -t ps -do "source waves.tcl ; load_wave waves/systolic_array.do" -do "set PrefSource(OpenOnFinish) 0 ; set PrefMain(LinePrefix) "" ; set PrefMain(colorizeTranscript) 1" -onfinish stop -coverage tb_systolic_array 
+Start time: 00:28:48 on Apr 21,2026
+** Note: (vsim-3812) Design is being optimized...
+Loading sv_std.std
+Loading work.tb_systolic_array(fast)
+Loading work.systolic_array(fast)
+Loading work.fp_multiplier(fast)
+Loading work.fp_adder(fast)
+source waves.tcl 
+ load_wave waves/systolic_array.do
+set PrefSource(OpenOnFinish) 0 
+0
+ set PrefMain(LinePrefix) "" 
+ set PrefMain(colorizeTranscript) 1
+1
+run -all
+** Note: $finish    : src/u337mg126_ece337_systolic_array_1.0.0/testbench/tb_systolic_array.sv(161)
+   Time: 3020 ns  Iteration: 1  Instance: /tb_systolic_array
+Break in Module tb_systolic_array at src/u337mg126_ece337_systolic_array_1.0.0/testbench/tb_systolic_array.sv line 161
+End time: 00:29:12 on Apr 21,2026, Elapsed time: 0:00:24
+Errors: 0, Warnings: 0
