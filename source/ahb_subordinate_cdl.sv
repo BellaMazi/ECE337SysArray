@@ -3,7 +3,7 @@
 module ahb_subordinate_cdl #(
 ) (
     input logic clk, n_rst, hsel, 
-    input logic inference_complete,
+ //   input logic inference_complete,
     input logic [9:0] haddr,
     input logic [1:0] htrans, 
     input logic [2:0] hsize,
@@ -18,7 +18,7 @@ module ahb_subordinate_cdl #(
 
     //from data buffer
     input logic hready_stall, occ_err,
-    input logic [2:0] act_ctrl_out,
+    //input logic [2:0] act_ctrl_out,
     input logic overrun_err,
     //from controller
     input logic [1:0] ctrl_reg_clear,
@@ -33,14 +33,14 @@ module ahb_subordinate_cdl #(
 );
 
     // address map
-    localparam logic [9:0] ADDR_WEIGHT = 10'h000;
-    localparam logic [9:0] ADDR_INPUT = 10'h008;
-    localparam logic [9:0] ADDR_BIAS = 10'h010;
-    localparam logic [9:0] ADDR_OUTPUT = 10'h018;
-    localparam logic [9:0] ADDR_ERROR = 10'h020;
-    localparam logic [9:0] ADDR_CONTROL = 10'h022;
-    localparam logic [9:0] ADDR_STATUS = 10'h023;
-    localparam logic [9:0] ADDR_ACTIV=10'h024;
+    //localparam logic [9:0] ADDR_WEIGHT = 10'h000;
+    //localparam logic [9:0] ADDR_INPUT = 10'h008;
+    //localparam logic [9:0] ADDR_BIAS = 10'h010;
+    //localparam logic [9:0] ADDR_OUTPUT = 10'h018;
+    //localparam logic [9:0] ADDR_ERROR = 10'h020;
+    //localparam logic [9:0] ADDR_CONTROL = 10'h022;
+    //localparam logic [9:0] ADDR_STATUS = 10'h023;
+    //localparam logic [9:0] ADDR_ACTIV=10'h024;
 
 
     logic dph_valid;
@@ -79,7 +79,7 @@ module ahb_subordinate_cdl #(
             case(haddr)
                 10'h018,10'h019,10'h01A,10'h01B,
                 10'h01C,10'h01D,10'h01E,10'h01F,
-                10'h020,10'h021: write_ro =1'b1;
+                10'h020,10'h021,10'h023: write_ro =1'b1;
                 default: write_ro =1'b0;
             endcase
         end
@@ -115,12 +115,13 @@ module ahb_subordinate_cdl #(
     end
     // assign hresp = (err_state ==ERR_CYC1||err_state==ERR_CYC2);
     // assign hready = (err_state!=ERR_CYC1) && !hready_stall;
+    //logic hresp_reg;
     always_ff @(posedge clk, negedge n_rst)begin
         if(!n_rst) begin
             hresp <= 1'b0;
             hready <=1'b1;
         end else begin
-            hresp <= (err_next == ERR_CYC1);
+            hresp <= (err_next == ERR_CYC1 || err_next == ERR_CYC2);
             if(err_next==ERR_CYC1)begin
                 hready <= '0;
             end else if(dph_valid && hready_stall) begin
@@ -248,6 +249,5 @@ module ahb_subordinate_cdl #(
             hrdata<= raw_hazard? hwdata: read_data;
         end
     end
-
 endmodule
 
