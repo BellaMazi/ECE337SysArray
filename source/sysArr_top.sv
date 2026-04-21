@@ -65,11 +65,10 @@ module sysArr_top #(
     assign nan_err = 1'b0;
     assign inf_err = 1'b0;
 
-    ahb_subordinate_cdl ahb_sub( .clk(clk), .n_rst(n_rst), .hsel(hsel), .inference_complete(inference_complete),
+    ahb_subordinate_cdl ahb_sub( .clk(clk), .n_rst(n_rst), .hsel(hsel),
     .haddr(haddr), .htrans(htrans), .hwrite(hwrite), .hsize({1'b0, hsize}), .hwdata(hwdata), 
     .hrdata(hrdata), .hresp(hresp), .hready(hready), .active_mode(active_mode), 
-    .bias(bias), .ctrl_reg(ctrl_reg), .hready_stall(hready_stall), .occ_err(occ_err), 
-    .act_ctrl_out(3'd0), .overrun_err(overrun_err), .ctrl_reg_clear(ctrl_reg_clear), 
+    .bias(bias), .ctrl_reg(ctrl_reg), .hready_stall(hready_stall), .occ_err(occ_err), .overrun_err(overrun_err), .ctrl_reg_clear(ctrl_reg_clear), 
     .status_reg_ctrl(status_reg_ctrl), .ahb_wr_weight(ahb_wr_weight), .ahb_wr_input(ahb_wr_input), 
     .nan_err(nan_err), .inf_err(inf_err), .clear_errors(clear_errors));
 
