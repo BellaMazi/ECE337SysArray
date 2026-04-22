@@ -219,3 +219,4 @@ module dataBuffer #(
     sram1024x32_wrapper out_sram_lo(.clk(clk), .n_rst(n_rst), .address(out_addr), .read_enable(out_re), .write_enable(out_we), .write_data(sram_wdata[31:0]), .read_data(out_lo_rd), .sram_state(out_sram_lo_state));
     /* verilator lint_on SYNCASYNCNET */
 endmodule
+
