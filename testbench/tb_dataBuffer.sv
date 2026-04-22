@@ -146,6 +146,26 @@ module tb_dataBuffer ();
         sram_addr = 10'd0;
     endtask
 
+//     initial begin
+//     forever begin
+//         @(posedge clk);
+//         if (DUT.ahb_req && DUT.hwrite && DUT.haddr == 10'h000 && DUT.sram_state == 2'd2) begin
+//             $display("T=%0t: AHB weight ACCESS fired, wt_wr_ptr = %d, next_wt_wr_ptr = %d, next_occ_err = %b",
+//                      $time, DUT.wt_wr_ptr, DUT.next_wt_wr_ptr, DUT.next_occ_err);
+//         end
+//     end
+// end
+
+//     initial begin
+//     forever begin
+//         @(posedge clk);
+//         if (DUT.ahb_req && DUT.hwrite && DUT.haddr == 10'h000) begin
+//             $display("T=%0t: AHB weight ACCESS, ptr=%d, ahb_winning=%b, sram_rd_en=%b, sram_wr_en=%b, next_ptr=%d",
+//                      $time, DUT.wt_wr_ptr, DUT.ahb_winning, DUT.sram_rd_en, DUT.sram_wr_en, DUT.next_wt_wr_ptr);
+//         end
+//     end
+// end
+
     initial begin
         n_rst = 1;
         sram_rd_en = 0;
@@ -480,6 +500,7 @@ module tb_dataBuffer ();
         test_name = "Back-to-back reads different regions";
         $display("TEST 13: %s", test_name);
         reset_dut();
+        def_in();
  
         begin
             logic [63:0] rd_a, rd_b;
@@ -513,7 +534,9 @@ module tb_dataBuffer ();
 
         test_name = "Overrun error — outputs overwritten before read";
         $display("TEST 14:", test_name);
+        
         reset_dut();
+        def_in();
     
         begin
             integer p;
@@ -546,7 +569,9 @@ module tb_dataBuffer ();
 
         test_name = "occ_err clears on error reg read";
         $display("TEST 16: %s", test_name);
+
         reset_dut();
+        def_in();
     
         begin
             integer q;
@@ -567,7 +592,9 @@ module tb_dataBuffer ();
 
         test_name = "Pointer resets";
         $display("TEST 17: %s", test_name);
+
         reset_dut();
+        def_in();
     
         begin
             integer r;
@@ -630,21 +657,100 @@ module tb_dataBuffer ();
         end
 
 
-
-
-        
-
-
-
-
-
-
-
-
+        test_name = "64-bit width correctness";
+        $display("TEST 18: %s", test_name);
 
         
+        reset_dut();
+        def_in();
+    
+        begin 
+            logic [63:0] test_pattern, rd_back;
+            test_pattern = 64'h12345678_ABCDEF00;
+        
+            // Write via AHB
+            ahb_write(WEIGHT_REG, test_pattern);
+        
+            // Reset pointer, read back via controller
+            ctrl_reg_clear = 2'b10; @(posedge clk); #1; ctrl_reg_clear = 2'b00;
+            ctrl_read(WT_BASE, rd_back);
+        
+            if(rd_back == test_pattern)
+                $display("TEST 18: PASS 64-bit pattern 64'h12345678_ABCDEF00 read back correctly");
+            else begin
+                $display("TEST 18: FAIL 64-bit pattern 64'h12345678_ABCDEF00 read NOT back correctly");
+                $display("rd_back: %h", rd_back);
+            end
+            if(rd_back[63:32] == 32'h12345678)
+                $display("TEST 18: PASS upper 32 bits correct");
+            else begin
+                $display("TEST 18: FAIL upper 32 bits NOT correct");
+                $display("rd_back: %h", rd_back[63:32]);
+            end
+            if(rd_back[31:0]  == 32'hABCDEF00)
+                $display("TEST 18: PASS lower 32 bits (lo instance) correct");
+            else begin
+                $display("TEST 18: FAIL lower 32 bits (lo instance) correct");
+                $display("rd_back: %h", rd_back[31:0]);
+            end
 
+        end
 
+        test_name = "AHB output reads: out_valid_cnt and out_rd_ptr";
+        $display("\nTEST 19: %s", test_name);
+
+        reset_dut();
+        def_in();
+
+    
+        begin
+            integer      t;
+            logic [63:0] expected, rd_val;
+            logic        all_correct;
+            all_correct = 1;
+        
+            // Pre-load 8 known values via controller
+            for (t = 0; t < 8; t++)
+                ctrl_write(OUT_BASE + t, 64'hFACE_0000_0000_0000 | t);
+        
+            // AHB reads all 8 back in order
+            for (t = 0; t < 8; t++) begin
+                expected = 64'hFACE_0000_0000_0000 | t;
+                ahb_read(OUTPUT_REG, rd_val);
+                if (rd_val !== expected) all_correct = 0;
+            end
+            if(all_correct)
+                $display("TEST 19: PASS all 8 output reads return correct values in order");
+            else
+                $display("TEST 19: FAIL");
+        end
+
+        $display("TEST 20: 64-write pointer integrity");
+reset_dut();
+def_in();
+begin
+    integer x;
+    logic [63:0] expected, got;
+    logic all_match;
+    all_match = 1;
+    
+    for (x = 0; x < 64; x++)
+        ahb_write(WEIGHT_REG, 64'hAAAA_0000_0000_0000 | x);
+    
+    ctrl_reg_clear = 2'b10; @(posedge clk); #1; ctrl_reg_clear = 2'b00;
+    
+    for (x = 0; x < 64; x++) begin
+        expected = 64'hAAAA_0000_0000_0000 | x;
+        ctrl_read(WT_BASE + x, got);
+        if (got !== expected) begin
+            $display("  slot %0d: expected %h, got %h", x, expected, got);
+            all_match = 0;
+        end
+    end
+    
+    if (all_match) $display("TEST 20: PASS");
+    else           $display("TEST 20: FAIL");
+end
 
 
         $finish;
