@@ -21,12 +21,9 @@ module tb_sysController ();
     logic clk, n_rst;
     logic [1:0] ctrl_reg;
     logic [1:0] act_ctrl;
-    logic [63:0] hwdata;
-    logic ahb_wr_weight, ahb_wr_input;
     logic [63:0] sram_rd_data;
-    logic [1:0] sram_state;
+    logic inference_complete;
     logic [63:0] activations;
-    //logic array_done;
 
     logic sram_rd_en, sram_wr_en;
     logic [9:0] sram_addr;
@@ -35,19 +32,21 @@ module tb_sysController ();
     logic [63:0] input_vec;
     logic [1:0] ctrl_reg_clear;
     logic [1:0] status_reg;
-    logic [1:0] act_ctrl_out;
 
     string test_name;
 
-    sysController DUT(.clk(clk), .n_rst(n_rst), 
-    .ctrl_reg(ctrl_reg), .act_ctrl(act_ctrl), 
-    .hwdata(hwdata), .ahb_wr_weight(ahb_wr_weight), 
-    .ahb_wr_input(ahb_wr_input), .sram_rd_data(sram_rd_data), 
-    .sram_state(sram_state), .activations(activations), .sram_rd_en(sram_rd_en), 
-    .sram_wr_en(sram_wr_en), .sram_addr(sram_addr), 
-    .sram_wr_data(sram_wr_data), .load_weights(load_weights), 
-    .run_array(run_array), .input_vec(input_vec), 
-    .ctrl_reg_clear(ctrl_reg_clear), .status_reg(status_reg), .act_ctrl_out(act_ctrl_out));
+    // Updated DUT Instantiation (act_ctrl_out removed)
+    sysController DUT(
+        .clk(clk), .n_rst(n_rst), 
+        .ctrl_reg(ctrl_reg), .act_ctrl(act_ctrl), 
+        .sram_rd_data(sram_rd_data), 
+        .inference_complete(inference_complete), .activations(activations), 
+        .sram_rd_en(sram_rd_en), .sram_wr_en(sram_wr_en), 
+        .sram_addr(sram_addr), .sram_wr_data(sram_wr_data), 
+        .load_weights(load_weights), .run_array(run_array), 
+        .input_vec(input_vec), .ctrl_reg_clear(ctrl_reg_clear), 
+        .status_reg(status_reg)
+    );
 
     // clockgen
     always begin
@@ -69,35 +68,18 @@ module tb_sysController ();
     end
     endtask
 
-    //sysController #() DUT (.*);
-
     task def_in();
         ctrl_reg = 2'b00;
         act_ctrl = 2'b00;
-        hwdata = 64'd0;
-        ahb_wr_weight = 1'b0;
-        ahb_wr_input = 1'b0;
         sram_rd_data = 64'd0;
-        sram_state = SRAM_FREE;
         activations = 64'd0;
-        //array_done = 1'b0;
-    endtask
-
-    task sram_cycle(input logic [63:0] rd_data);
-        sram_state = SRAM_FREE;
-        @(posedge clk); #1;
-        sram_state = SRAM_BUSY;
-        @(posedge clk); #1;
-        sram_state = SRAM_ACCESS;
-        sram_rd_data = rd_data;
-        @(posedge clk); #1;
-        sram_state = SRAM_FREE;
-        sram_rd_data = 64'd0;
+        inference_complete = 1'b0;
     endtask
 
     initial begin
         n_rst = 1;
-        reset_dut;
+        def_in();
+        reset_dut();
 
         $display("TEST 1: Reset Behavior");
         test_name = "Reset Behavior";
@@ -123,8 +105,9 @@ module tb_sysController ();
         $display("TEST 3: ctrl_reg [1] triggers LOAD_WEIGHTS");
         test_name = "ctrl_reg [1] triggers LOAD_WEIGHTS";
 
-        reset_dut();
         def_in();
+        reset_dut();
+        
         ctrl_reg = 2'b10;
         @(posedge clk); #1;
         ctrl_reg = 2'b00;
@@ -137,8 +120,9 @@ module tb_sysController ();
         $display("TEST 4: ctrl_reg[0] triggers INFER_FEED");
         test_name = "ctrl_reg[0] triggers INFER_FEED";
 
-        reset_dut();
         def_in();
+        reset_dut();
+        
         ctrl_reg = 2'b01;
         @(posedge clk); #1;
         ctrl_reg = 2'b00;
@@ -153,8 +137,9 @@ module tb_sysController ();
         $display("TEST 5: ctrl_reg[1] wins over ctrl_reg[0]");
         test_name = "load priority over infer";
 
-        reset_dut();
         def_in();
+        reset_dut();
+        
         ctrl_reg = 2'b11;
         @(posedge clk); #1;
         ctrl_reg = 2'b00;
@@ -167,8 +152,9 @@ module tb_sysController ();
         $display("TEST 6: 64 cycle weight load seq");
         test_name = "64 cycle weight load seq";
 
-        reset_dut();
         def_in();
+        reset_dut();
+        
         ctrl_reg = 2'b10;
         @(posedge clk); #1;
         ctrl_reg = 2'b00;
@@ -183,7 +169,7 @@ module tb_sysController ();
             for(i = 0; i<64; i++) begin
                 expected_data = 64'hA5A5A5A5_00000000 | i;
                 sram_rd_data = expected_data;
-                sram_cycle(expected_data);
+                @(posedge clk); #1; // Pipelined 1 cycle per read now
                 if(!load_weights) load_seen = 0;
                 if(input_vec != expected_data) vec_correct = 0;
             end
@@ -193,64 +179,52 @@ module tb_sysController ();
                 $display("bad");
         end
 
-        //@(posedge clk); #1;
         if(ctrl_reg_clear[1] == 1'b1)
             $display("TEST 6: ctrl_reg_clear PASS!");
         else
             $display("TEST 6: ctrl_reg_clear FAIL!");
-        if(status_reg[1] == 1'b0)
-            $display("TEST 6: status_reg PASS!");
-        else
-            $display("TEST 6: status_reg FAIL!");
+            
         @(posedge clk); #1;
+        
         if(status_reg == 2'b00)
             $display("TEST 6: status_reg full final PASS");
         else 
             $display("TEST 6: status_reg full final FAIL");
 
         
-        $display("TEST 7: WT_SRAM_WAIT- signals stable during busy");
-        test_name = "stable during busy";
+        $display("TEST 7: Pipelined LOAD_WEIGHTS signal stability");
+        test_name = "stable pipelined feed";
 
-        reset_dut();
         def_in();
+        reset_dut();
+        
         ctrl_reg = 2'b10;
         @(posedge clk); #1;
         ctrl_reg = 2'b00;
-        sram_state = SRAM_BUSY;
 
         begin
-            logic [9:0] captured_addr;
-            logic captrued_rd_en;
-            logic stable_addr, stable_rd_en;
+            logic stable_rd_en;
             integer j;
-            captured_addr = sram_addr;
-            captrued_rd_en = sram_rd_en;
-            stable_addr = 1;
             stable_rd_en = 1;
 
             for(j = 0; j < 5; j++) begin
                 @(posedge clk); #1;
-                if(sram_addr != captured_addr) stable_addr = 0;
-                if(sram_rd_en != captrued_rd_en) stable_rd_en = 0;
+                // Addr will increment now, so we just check rd_en
+                if(sram_rd_en != 1'b1) stable_rd_en = 0;
             end
-            if(stable_addr && stable_rd_en && load_weights == 1'b0)
+            if(stable_rd_en && load_weights == 1'b1)
                 $display("TEST 7: stable vals PASS");
             else begin
                 $display("TEST 7: stable vals FAIL");
-                $display("stable_addr: %b, stable_rd_en: %d, load_weights: %b", stable_addr, stable_rd_en, load_weights);
             end
         end
-
-        sram_state = SRAM_ACCESS;
-        @(posedge clk); #1;
-        sram_state = SRAM_FREE;
 
         $display("TEST 8: 8 row inference feed");
         test_name = "8 row inference feed";
 
-        reset_dut();
         def_in();
+        reset_dut();
+        
         ctrl_reg = 2'b01;
         @(posedge clk); #1;
         ctrl_reg = 2'b00;
@@ -266,69 +240,25 @@ module tb_sysController ();
             for(k = 0; k < 8; k++) begin
                 in_data = 64'hBEEF_0000_0000_0000 | k;
                 sram_rd_data = in_data;
-                sram_state = SRAM_FREE;
                 @(posedge clk); #1;
-                sram_state = SRAM_BUSY;
-                @(posedge clk); #1;
-                sram_state = SRAM_ACCESS;
                 if(!run_array) run_seen = 0;
                 if(input_vec != in_data) vec_ok = 0;
                 if(sram_addr != IN_BASE + k) addr_ok = 0;
-                @(posedge clk); #1;
-                sram_state = SRAM_FREE;
-                sram_rd_data = 64'd0;
             end
             if(run_seen && vec_ok && addr_ok)
                 $display("TEST 8: oks PASS");
             else begin
                 $display("TEST 8: oks FAIL");
-                $display("run_seen = %b, vec_ok = %b, addr_ok = %b", run_seen, vec_ok, addr_ok);
             end
         end
 
-        $display("TEST 9: IN_SRAM_WAIT");
-        test_name = "IN_SRAM_WAIT stable";
+        $display("TEST 9: INFER_FEED transitions directly to WAIT_AND_CAPTURE");
+        test_name = "INFER_DRAIN state transition";
 
-        reset_dut();
         def_in();
-        ctrl_reg = 2'b01;
-        @(posedge clk); #1;
-        ctrl_reg = 2'b00;
-        sram_state = SRAM_FREE;
-        @(posedge clk); #1;
-        sram_state = SRAM_BUSY;
+        reset_dut();
 
         begin
-            logic [9:0] cap_addr;
-            logic stable;
-            integer m;
-            cap_addr = sram_addr;
-            stable = 1;
-            for(m = 0; m<4; m++) begin
-                @(posedge clk); #1;
-                if(sram_addr != cap_addr) stable = 0;
-            end
-            if(run_array == 1'b0 && stable)
-                $display("TEST 9: PASS");
-            else begin
-                $display("TEST 9: FAIL");
-                $display("run_array = %b, stable = %b", run_array, stable);
-            end
-        end
-        sram_state = SRAM_FREE;
-
-        $display("TEST 10: INFER_DRAIN - lat_counter gets to 54 then CAPTURE_OUT and lat < 55 cycles");
-        test_name = "INFER_DRAIN lat_conter and lat budge";
-
-        reset_dut();
-        def_in();
-
-        begin
-            integer cycle_cnt;
-            logic done_seen;
-            cycle_cnt = 0;
-            done_seen = 0;
-
             ctrl_reg = 2'b01;
             @(posedge clk); #1;
             ctrl_reg = 2'b00;
@@ -336,53 +266,42 @@ module tb_sysController ();
             begin
                 integer r;
                 for(r = 0; r< 8; r++) begin
-                    sram_cycle(64'hCAFE_0000_0000_0000 | r);
-                    cycle_cnt++;
-                end
-            end
-
-            if(run_array == 1'b0)
-                $display("entering INFER_DRAIN");
-            
-            begin
-                integer d;
-                for(d = 0; d < 60; d++) begin
+                    sram_rd_data = 64'hCAFE_0000_0000_0000 | r;
                     @(posedge clk); #1;
-                    cycle_cnt++;
-                    if(sram_wr_en) begin
-                        done_seen = 1;
-                        break;
-                    end
                 end
             end
-            if(done_seen && cycle_cnt <= 55) begin
-                $display("TEST 10: PASS");
-                $display("lat measured: %d", cycle_cnt);
-            end
-            else begin
-                $display("TEST 10: FAIL");
-                $display("done_seen = %b, lat measured: %d", done_seen, cycle_cnt);
-            end
 
+            if(DUT.state == 4'd3) // 3 is WAIT_AND_CAPTURE
+                $display("TEST 9: PASS (Entered WAIT_AND_CAPTURE)");
+            else
+                $display("TEST 9: FAIL (State is %0d)", DUT.state);
         end
 
-        $display("TEST 11: CAPTURE_OUT - 8-row output write");
-        test_name = "CAPTURE_OUT - 8-row output write";
+        $display("TEST 10: CAPTURE_OUT triggered by inference_complete");
+        test_name = "CAPTURE_OUT";
+
+        def_in();
+        reset_dut();
 
         begin
             ctrl_reg = 2'b01; 
             @(posedge clk); #1;
             ctrl_reg = 2'b00;
+            
+            // Feed 8 inputs
             begin
                 integer r2;
-                for(r2 = 0; r2 < 8; r2 ++)
-                    sram_cycle(64'd0);
+                for(r2 = 0; r2 < 8; r2 ++) begin
+                    sram_rd_data = 64'd0;
+                    @(posedge clk); #1;
+                end
             end
+            
+            // Simulate 10 cycles of pipeline delay before activations are ready
             begin
                 integer d2;
-                for(d2 = 0; d2 < 60; d2++) begin
+                for(d2 = 0; d2 < 10; d2++) begin
                     @(posedge clk); #1;
-                    if(sram_wr_en) break;
                 end
             end
 
@@ -391,78 +310,85 @@ module tb_sysController ();
                 logic addr_ok2, data_ok;
                 addr_ok2 = 1;
                 data_ok = 1;
+                
+                // Assert valid signal to trigger output capture dynamically
+                inference_complete = 1'b1;
+                
                 for(c = 0; c< 8; c++) begin
                     activations = 64'hDEAD_BEEF_0000_0000 | c;
                     if(sram_addr != OUT_BASE + c) addr_ok2 = 0;
                     if(sram_wr_data != activations) data_ok = 0;
-                    sram_cycle(64'd0);
+                    @(posedge clk); #1;
                 end
+                
+                inference_complete = 1'b0;
+                
                 if(addr_ok2 && data_ok)
-                    $display("TEST 11: PASS");
+                    $display("TEST 10: PASS");
                 else begin
-                    $display("TEST 11: FAIL");
-                    $display("addr_ok2: %b, data_ok = %b", addr_ok2, data_ok);
+                    $display("TEST 10: FAIL");
                 end
             end
         end
 
+        $display("TEST 11: CAPTURE_OUT - 8-row output write completion");
+        test_name = "CAPTURE_OUT - 8-row output write";
+
+        // Test 10 functionally covered the 8-row write, but we can verify the state exited.
+        if (DUT.state == 4'd4 || DUT.state == 4'd0) // DONE or IDLE
+            $display("TEST 11: PASS");
+        else
+            $display("TEST 11: FAIL");
+
         $display("TEST 12: Done state");
         test_name = "DONE state";
+
+        def_in();
+        reset_dut();
 
         begin
             ctrl_reg = 2'b01; 
             @(posedge clk); #1;
             ctrl_reg = 2'b00;
+            
+            // Fast-forward through feed
             begin
                 integer r3;
-                for(r3 = 0; r3 < 8; r3++) sram_cycle(64'd0);
-            end
-            begin
-                integer d3;
-                for(d3 = 0; d3 < 60; d3++) begin
+                for(r3 = 0; r3 < 8; r3++) begin
+                    sram_rd_data = 64'd0;
                     @(posedge clk); #1;
-                    if(sram_wr_en) break;
                 end
             end
+            
+            // Trigger completion
+            inference_complete = 1'b1;
             begin
                 integer c2; 
-                for(c2 = 0; c2 < 8; c2++) sram_cycle(64'd0);
+                for(c2 = 0; c2 < 8; c2++) begin
+                    activations = 64'd0;
+                    @(posedge clk); #1;
+                end
             end
+            inference_complete = 1'b0;
+            
             if(status_reg[0] == 1'b1 && status_reg[1] == 1'b0 && ctrl_reg_clear[0] == 1'b1)
                 $display("TEST 12: pt1 PASS");
             else begin
                 $display("TEST 12: pt1 FAIL");
                 $display("status_reg: %b, ctrl_reg_clr[0] = %b", status_reg, ctrl_reg_clear[0]);
             end
+            
             @(posedge clk); #1;
-            if(ctrl_reg_clear[0] == 1'b0)
+            if(ctrl_reg_clear[0] == 1'b0 && status_reg[0] == 1'b1) // Status stays 1 until new infer
                 $display("TEST 12: pt2 PASS");
             else
                 $display("TEST 12: pt2 FAIL");
         end
 
-        $display("TEST 13: act_ctlr pass");
-        test_name = "actl_ctrl pass";
-
-        reset_dut();
-        def_in();
-        act_ctrl = 2'b10;
-        @(posedge clk); #1;
-        if(act_ctrl_out == 2'b10)
-            $display("TEST 13: good1");
-        else
-            $display("TEST 13: bad1");
-        act_ctrl = 2'b11;
-        @(posedge clk); #1;
-        if(act_ctrl_out == 2'b11)
-            $display("TEST 13: good2");
-        else
-            $display("TEST 13: bad2");
-
-        $display("TEST 14: b2b");
+        $display("TEST 13: b2b loading and inferring");
         test_name = "b2b";
-        reset_dut();
         def_in();
+        reset_dut();
 
         ctrl_reg = 2'b10;
         @(posedge clk); #1;
@@ -470,21 +396,23 @@ module tb_sysController ();
 
         begin
             integer w2;
-            for(w2 = 0; w2 < 64; w2++)
-                sram_cycle(64'd0);
+            for(w2 = 0; w2 < 64; w2++) begin
+                sram_rd_data = 64'd0;
+                @(posedge clk); #1;
+            end
         end
+        
         @(posedge clk); #1;
         ctrl_reg = 2'b01;
         @(posedge clk); #1;
         ctrl_reg = 2'b00;
+        
         if(status_reg[1] == 1'b1 && sram_addr == IN_BASE)
-            $display("TEST 14: PASS");
+            $display("TEST 13: PASS");
         else begin
-            $display("TEST 14: FAIL");
+            $display("TEST 13: FAIL");
             $display("status_reg[1]: %b, sram_addr: %b", status_reg[1], sram_addr);
         end
-
-
 
         $finish;
     end
